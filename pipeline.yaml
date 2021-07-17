@@ -1,11 +1,22 @@
 AWSTemplateFormatVersion: 2010-09-09
+Description: CI/CD pipeline fot github projects
+
+Parameters:
+  GitHubOwner:
+    Type: String
+    AllowedPattern: "[A-Za-z0-9-]+"
+    Default: marquesjr
+  GitHubRepository:
+    Type: String
+    AllowedPattern: "[A-Za-z0-9-]+"
+  GitHubBranch:
+    Type: String
+    AllowedPattern: "[A-Za-z0-9-]+"
+    Default: master
 
 Resources:
   CodeBuildServiceRole:
-    Type: "AWS::CodeBuild::Project"
-    Metadata:
-      "AWS::CloudFormation::Designer":
-        id: 74d3363c-2861-4681-9aa2-1f965f1d1b09
+    Type: "AWS::IAM::Role"
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -48,7 +59,7 @@ Resources:
                 Resource:
                   - "*"
   CodeBuildSourceCredential:
-    Type: AWS::CodeBuild::SourceCredential
+    Type: "AWS::CodeBuild::SourceCredential"
     Properties:
       AuthType: PERSONAL_ACCESS_TOKEN
       ServerType: GITHUB
@@ -60,7 +71,7 @@ Resources:
       ServiceRole: !GetAtt CodeBuildServiceRole.Arn
       Source:
         Type: GITHUB
-        Location: https://github.com/marquesjr/github-aws-cicd.git
+        Location: !Sub "https://github.com/${GitHubOwner}/${GitHubRepository}.git"
         BuildSpec: buildspec.yaml
         Auth:
           Type: OAUTH
@@ -71,9 +82,9 @@ Resources:
         Webhook: true
         FilterGroups:
           - - Type: EVENT
-              Pattern: PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED
+              Pattern: "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED, PULL_REQUEST_REOPENED"
             - Type: BASE_REF
-              Pattern: !Sub ^refs/heads/master$
+              Pattern: !Sub ^refs/heads/${GitHubBranch}$
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
